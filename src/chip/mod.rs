@@ -4,6 +4,7 @@ mod sound;
 
 use display::Display;
 use keyboard::KeyBoard;
+use sound::Sound;
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -14,20 +15,23 @@ pub struct Cpu {
     sdl_context: sdl2::Sdl,
     display: Display,
     keyboard: KeyBoard,
+    sound: Sound,
     event_pump: sdl2::EventPump,
 }
 
 impl Cpu {
     pub fn new() -> Self {
         let sdl_context = sdl2::init().unwrap();
-        let mut event_pump = sdl_context.event_pump().unwrap();
+        let event_pump = sdl_context.event_pump().unwrap();
         let display = Display::new(&sdl_context, "Chip 8", 16, 64, 32);
         let keyboard = KeyBoard::new();
+        let sound = Sound::new(&sdl_context);
 
         Self {
             sdl_context,
             display,
             keyboard,
+            sound,
             event_pump,
         }
     }
@@ -72,6 +76,7 @@ impl Cpu {
               // execute instruction
             self.dummy_instruction();
             self.display.render();
+            self.sound.resume();
         } // main loop ends here
     }
 }
