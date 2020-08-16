@@ -20,6 +20,7 @@ pub struct Cpu {
     sound: Sound,
     event_pump: sdl2::EventPump,
 
+    stack: Vec<u16>,
     ram: [u8; 4096],     // 4KB memory
     registers: [u8; 16], // 16 8-bit register
     index: u16,          // 1 16-bit register (store memory address)
@@ -49,6 +50,7 @@ impl Cpu {
             sound,
             event_pump,
 
+            stack: vec![0],
             ram,
             registers: [0; 16],
             index: 0,
@@ -155,12 +157,16 @@ impl Cpu {
         match opcode & 0xF000 {
             0x000 => match opcode {
                 0x00E0 => self.display.clear(), //CLS
-                0x00EE => return,               // RET
+                0x00EE => self.pc = self.stack.pop().unwrap(),
                 _ => {}
             },
 
             0x1000 => self.pc = opcode & 0x0FFF,
-            0x2000 => {} // call subroutine,
+            0x2000 => {
+                let nnn = opcode & 0x0FFF;
+                self.stack.push(self.pc);
+                self.pc = nnn;
+            } // call subroutine,
             0x3000 => {
                 // 3xkk
                 let x = opcode & 0x0F00;
@@ -309,9 +315,21 @@ impl Cpu {
                     0x18 => self.sound_timer = self.registers[x],
                     0x1E => self.index += self.registers[x] as u16,
                     0x29 => { /*later*/ }
-                    0x33 => { /*later*/ }
-                    0x55 => { /*later*/ }
-                    0x65 => { /*later*/ }
+                    0x33 => {
+                        self.ram[self.index as usize] = (x / 100) as u8;
+                        self.ram[(self.index + 1) as usize] = ((x / 10) % 10) as u8;
+                        self.ram[(self.index + 2) as usize] = (x % 10) as u8;
+                    }
+                    0x55 => {
+                        for i in 0..=x{
+                            self.ram[(self.index + i as u16 ) as usize] = self.registers[i];
+                        }
+                    }
+                    0x65 => {
+                        for i in 0..=x{
+                            self.registers[i] = self.ram[(self.index + i as u16) as usize];
+                        }
+                    }
                     _ => {}
                 }
             }
