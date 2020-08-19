@@ -1,24 +1,33 @@
+use std::collections::HashMap;
+
 pub struct KeyBoard {
-    pressed_keys: Vec<char>,
+    pub pressed_key: HashMap<u8, bool>,
+    pub last_pressed_key:Option<u8>, 
+    pub should_wait_for_key:bool,
 }
 
 impl KeyBoard {
     pub fn new() -> Self {
-        Self {
-            pressed_keys: vec![],
+        let mut pressed_key: HashMap<u8,bool> = HashMap::with_capacity(15);
+        for i in 0..15 {
+            pressed_key.insert(i, false);
         }
-    }
-    pub fn add_key(&mut self, key: char) {
-        match key {
-            'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | '0' | '1'
-            | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => self.pressed_keys.push(key),
-            _ => {}
-        }
-        println!("{:#?}", self.pressed_keys);
+        Self { pressed_key, last_pressed_key:None, should_wait_for_key:false }
     }
 
-    pub fn get_key(&mut self) -> char {
-        // TODO: what if vector is empty
-        self.pressed_keys.remove(0)
+    pub fn on_key_down(&mut self, key: u8) {
+        self.pressed_key.insert(key, true);
+        self.last_pressed_key = Some(key);
+        if self.should_wait_for_key == true {
+            self.should_wait_for_key = false
+        }
+        //if let Some(handler) = self.handler {
+        //    handler();
+        //    self.handler = None;
+        //}
+    }
+
+    pub fn on_key_up(&mut self, key:u8){
+        self.pressed_key.insert(key, false);
     }
 }

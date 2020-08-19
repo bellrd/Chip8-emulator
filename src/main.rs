@@ -21,7 +21,7 @@ fn main() {
         }
     };
 
-    let mut cpu = Cpu::new();
+    let mut cpu: Cpu = Cpu::new();
     cpu.load(&mut f);
     cpu.execute();
 }

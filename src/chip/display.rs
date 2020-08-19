@@ -31,30 +31,39 @@ impl Display {
 }
 
 impl Display {
+    // it toggle pixel and return if after toggling pixel
     pub fn set_pixel(&mut self, x: usize, y: usize) -> u8 {
         let x = if x >= 64 { x % 64 } else { x };
         let y = if y >= 32 { y % 32 } else { y };
-        let position = (y * 64 + x) * 4; // Each pixel occupy 4 byte in vec
-        self.buffer[position] = 255; //set  A (alpha)
-        self.buffer[position + 1] = 255; // set R
-        self.buffer[position + 2] = 255; // set G
-        self.buffer[position + 3] = 255; // set B
-        self.buffer[position]
-    }
+        let position = (y * 64 + x) * 4; // Since Each pixel occupy 4 byte in vec
 
-    pub fn unset_pixel(&mut self, x: usize, y: usize) -> u8 {
-        let x = if x >= 64 { x % 64 } else { x };
-        let y = if y >= 32 { y % 32 } else { y };
-        let position = (y * 64 + x) * 4;
-
-        self.buffer[position] = 0; // unset A (alpha)
-        self.buffer[position + 1] = 0; // unset R
-        self.buffer[position + 2] = 0; // unset G
-        self.buffer[position + 3] = 0; // unset B
-        self.buffer[position]
+        // pixel is already set
+        if (self.buffer[position]
+            | self.buffer[position + 1]
+            | self.buffer[position + 2]
+            | self.buffer[position + 3])
+            != 0
+        {
+            // unset pixel
+            self.buffer[position] = 0; // unset A (alpha)
+            self.buffer[position + 1] = 0; // unset R
+            self.buffer[position + 2] = 0; // unset G
+            self.buffer[position + 3] = 0; // unset B
+            return 1;
+        } else {
+            // else set pixel
+            self.buffer[position] = 255; //set  A (alpha)
+            self.buffer[position + 1] = 255; // set R
+            self.buffer[position + 2] = 255; // set G
+            self.buffer[position + 3] = 255; // set B
+            return 0;
+        }
     }
 
     pub fn render(&mut self) {
+        self.renderer.set_draw_color(Color::BLACK);
+        self.renderer.clear();
+
         let surface = Surface::from_data(
             self.buffer.as_mut(),
             64,
@@ -69,10 +78,10 @@ impl Display {
             .unwrap();
         self.renderer.copy(&texture, None, None).unwrap();
         self.renderer.present();
-        drop(texture); //we don't want to outlive texture ref doc; surface: already moved
     }
 
     pub fn clear(&mut self) {
+        self.buffer = vec![0; self.buffer.len()];
         self.renderer.set_draw_color(Color::BLACK);
         self.renderer.clear();
         self.renderer.present();
