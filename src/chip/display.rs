@@ -18,7 +18,7 @@ impl Display {
             .build()
             .unwrap();
 
-        let mut renderer = window.into_canvas().present_vsync().build().unwrap();
+        let mut renderer = window.into_canvas().accelerated().build().unwrap();
         let texture_creator = renderer.texture_creator();
         renderer.set_scale(scale as f32, scale as f32).unwrap();
         renderer.clear();
@@ -53,15 +53,15 @@ impl Display {
         } else {
             // else set pixel
             self.buffer[position] = 255; //set  A (alpha)
-            self.buffer[position + 1] = 255; // set R
+            self.buffer[position + 1] = 100; // set R
             self.buffer[position + 2] = 255; // set G
-            self.buffer[position + 3] = 255; // set B
+            self.buffer[position + 3] = 100; // set B
             return 0;
         }
     }
 
     pub fn render(&mut self) {
-        self.renderer.set_draw_color(Color::BLACK);
+        //self.renderer.set_draw_color(Color::BLACK);
         self.renderer.clear();
 
         let surface = Surface::from_data(

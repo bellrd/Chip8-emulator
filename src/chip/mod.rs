@@ -1,4 +1,3 @@
-#[allow(unused_imports, unused_variables, unused_braces, unused_import_braces)]
 mod display;
 mod keyboard;
 mod sound;
@@ -12,7 +11,7 @@ use sound::Sound;
 use std::fs;
 use std::io::Read;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub struct Cpu {
     display: Display,
@@ -26,7 +25,7 @@ pub struct Cpu {
     delay_timer: u8,
     sound_timer: u8,
     pc: u16,      // Program counter
-    paused: bool, // Is cpu paused (for some instruction)
+    paused: bool, // Is cpu paused
 }
 
 impl Cpu {
@@ -42,7 +41,6 @@ impl Cpu {
         load_sprites(&mut ram);
 
         Self {
-            //sdl_context,
             display,
             keyboard,
             sound,
@@ -58,7 +56,7 @@ impl Cpu {
         }
     }
 
-    // This will load program into memory
+    // load program into memory
     pub fn load(&mut self, rom: &mut fs::File) {
         let mut temp = vec![0_u8];
         let count = rom.read_to_end(&mut temp).expect("Load failed");
@@ -70,6 +68,7 @@ impl Cpu {
     // This will start execution of the program
     pub fn execute(&mut self) {
         'main: loop {
+            let t0 = Instant::now();
             if let Some(e) = self.event_pump.poll_event() {
                 match e {
                     Event::KeyDown {
@@ -132,7 +131,6 @@ impl Cpu {
 
             // if cpu is paused
             if self.paused {
-                println!("Cpu is paused");
                 if self.keyboard.should_wait_for_key == false {
                     let x = (instruction & 0x0F00) >> 8;
                     self.registers[x as usize] = self.keyboard.last_pressed_key.unwrap();
@@ -142,8 +140,6 @@ impl Cpu {
                 // if cpu is not paused then execute instruction
                 self.execute_instruction(instruction);
             }
-            //self.dummy_instruction();
-            //self.pc += 2;
 
             // update display after each instruction
             self.display.render();
@@ -159,13 +155,14 @@ impl Cpu {
                 self.delay_timer -= 1;
             }
 
-            thread::sleep(Duration::from_secs_f32(1.0 / 60_f32));
+            //let t1 = (1_000_000 / 60) - t0.elapsed().as_micros();
+            //thread::sleep(Duration::from_micros(t1 as u64));
         } // main loop ends here
     }
 }
 
 // helper function
-#[inline] // don't know what i'm doing
+#[inline]
 fn load_sprites(memory: &mut [u8]) {
     let sprites: [u8; 80] = [
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -194,117 +191,77 @@ fn load_sprites(memory: &mut [u8]) {
 impl Cpu {
     fn execute_instruction(&mut self, opcode: u16) {
         self.pc += 2;
-        //println!("Got opcode: {:#X}", opcode);
+        let x = (opcode & 0x0F00) >> 8;
+        let x = x as usize;
+        let y = (opcode & 0x00F0) >> 4;
+        let y = y as usize;
+        let kk = (opcode & 0x00FF) as u8;
+
+        let nnn = opcode & 0x0FFF;
+
         match opcode & 0xF000 {
             0x000 => match opcode {
                 // CLS
-                0x00E0 => {
-                    println!("0x00E0 : clearing screen");
-                    self.display.clear();
-                }
+                0x00E0 => self.display.clear(),
+
                 //RET
-                0x00EE => {
-                    println!("RET: popping from stack");
-                    self.pc = self.stack.pop().unwrap();
-                }
-                _ => println!("Zero instruction {} ", opcode),
+                0x00EE => self.pc = self.stack.pop().unwrap(),
+
+                _ => println!("Invalid instruction {} ", opcode),
             },
 
             //1nnn JP addr
-            0x1000 => {
-                println!("0x1000 JP {}", opcode & 0x0fff);
-                self.pc = opcode & 0x0FFF
-            }
+            0x1000 => self.pc = nnn,
 
             //2nnn CALL addr
             0x2000 => {
-                println!("CALL addr");
-                let nnn = opcode & 0x0FFF;
                 self.stack.push(self.pc);
                 self.pc = nnn;
             }
             //3xkk SE vx,byte
             0x3000 => {
-                println!("SE 3xkk");
-                let x = (opcode & 0x0F00) >> 8;
-                let kk = opcode & 0x00FF;
-                if self.registers[x as usize] == kk as u8 {
+                if self.registers[x] == kk {
                     self.pc += 2
                 }
             }
             //4xkk SNE vx,byte
             0x4000 => {
-                println!("SNE 4xkk");
-                let x = (opcode & 0x0F00) >> 8;
-                let kk = opcode & 0xFF;
-                print!("{}, {}, {}", opcode, x, kk);
-                if self.registers[x as usize] != kk as u8 {
+                if self.registers[x] != kk {
                     self.pc += 2
                 }
             }
             //5xy0 SE vx,vy
             0x5000 => {
-                println!("SE 5xy0");
-                let x = (opcode & 0x0F00) >> 8;
-                let x = x as usize;
-                let y = (opcode & 0x00F0) >> 4;
-                let y = y as usize;
                 if self.registers[x] == self.registers[y] {
                     self.pc += 2
                 }
             }
 
             //6xkk LD vx,byte
-            0x6000 => {
-                println!("LD 6xkk");
-                let x = (opcode & 0x0F00) >> 8;
-                let kk = opcode & 0xFF;
-                self.registers[x as usize] = kk as u8;
-            }
+            0x6000 => self.registers[x] = kk,
 
             //7xkk ADD vx,byte
             0x7000 => {
-                println!("ADD 7xkk");
-                let x = (opcode & 0x0F00) >> 8;
-                let x = x as u8;
-                let kk = (opcode & 0xFF) as u8;
-                let sum: u32 = (self.registers[x as usize]) as u32 + (kk) as u32;
-                self.registers[x as usize] = sum as u8;
+                let sum: u32 = (self.registers[x]) as u32 + (kk) as u32;
+                self.registers[x] = sum as u8;
             }
 
             0x8000 => {
-                let x = (opcode & 0x0F00) >> 8;
-                let y = (opcode & 0x00F0) >> 4;
-                let x = x as usize;
-                let y = y as usize;
                 match opcode & 0xF {
                     // 8xy0 LD vx,vy
-                    0 => {
-                        println!("LD 8xy0");
-                        self.registers[x] = self.registers[y]
-                    }
+                    0 => self.registers[x] = self.registers[y],
 
                     // 8xy1 OR vx,vy
-                    1 => {
-                        println!("OR 8xy1");
-                        self.registers[x] = self.registers[x] | self.registers[y];
-                    }
+                    1 => self.registers[x] = self.registers[x] | self.registers[y],
 
                     // 8xy2 AND vx,vy
-                    2 => {
-                        println!("AND 8xy2");
-                        self.registers[x] = self.registers[x] & self.registers[y]
-                    }
+                    2 => self.registers[x] = self.registers[x] & self.registers[y],
 
                     // 8xy3 XOR vx,vy
-                    3 => {
-                        println!("XOR 8xy3");
-                        self.registers[x] = self.registers[x] ^ self.registers[y]
-                    }
+                    3 => self.registers[x] = self.registers[x] ^ self.registers[y],
 
                     // 8xy4 ADD vx,vy
                     4 => {
-                        println!("ADD 8xy4");
                         let sum: u16 = self.registers[x] as u16 + self.registers[y] as u16;
                         if sum > 255 {
                             // set Vf register (overflow)
@@ -318,7 +275,6 @@ impl Cpu {
 
                     //8xy5 SUB vx,vy
                     5 => {
-                        println!("SUB 8xy5");
                         if self.registers[x] > self.registers[y] {
                             self.registers[x] = self.registers[x] - self.registers[y];
                             // set Vf flag
@@ -332,7 +288,6 @@ impl Cpu {
 
                     //8xy6 SHR vx {,vy}
                     6 => {
-                        println!("SHR 8xy6");
                         // least significatn bit is 1
                         if self.registers[x] & 1 == 1 {
                             self.registers[0xF] = 1
@@ -344,7 +299,6 @@ impl Cpu {
 
                     //8xy7 SUBN vx,vy
                     7 => {
-                        println!("SUBN 8xy7");
                         if self.registers[y] > self.registers[x] {
                             self.registers[x] = self.registers[y] - self.registers[x];
                             // set Vf flag
@@ -358,7 +312,6 @@ impl Cpu {
 
                     //8xyE SHL vx {, vy}
                     0xE => {
-                        println!("SHL 8xyE");
                         // most significatn bit is 1
                         if self.registers[x] & 1 << 7 == 1 {
                             self.registers[0xF] = 1
@@ -368,48 +321,32 @@ impl Cpu {
                         let sum = self.registers[x] as u16 * 216;
                         self.registers[x] = sum as u8;
                     }
-                    _ => {}
+                    _ => panic!("Invalid Instruction {}", opcode),
                 }
             }
 
             //9xy0 SNE vx,vy
             0x9000 => {
-                println!("SNE 9xy0");
-                let x = (opcode & 0x0F00) >> 8;
-                let y = (opcode & 0x00F0) >> 4;
-                if self.registers[x as usize] != self.registers[y as usize] {
+                if self.registers[x] != self.registers[y] {
                     self.pc += 2
                 }
             }
 
             //Annn
-            0xA000 => {
-                println!("Annn Annn");
-                self.index = opcode & 0x0FFF;
-            }
+            0xA000 => self.index = opcode & 0x0FFF,
 
             //Bnnn JP v0,addr
-            0xB000 => {
-                println!("JP Bnnn");
-                self.pc = self.registers[0] as u16 + (opcode & 0x0FFF);
-            }
+            0xB000 => self.pc = self.registers[0] as u16 + nnn,
 
             //cxkk RND vx,byte
             0xC000 => {
-                println!("RND cxkk");
                 let random_byte = rand::thread_rng().gen::<u8>();
-                let x = (opcode & 0x0F00) >> 8;
-                let kk = opcode & 0x00FF;
-                self.registers[x as usize] = kk as u8 & random_byte;
+                self.registers[x] = kk & random_byte;
             }
 
             0xD000 => {
-                //rlater
                 //Dxyn
-                println!("DRW Dxyn");
                 self.registers[0xf] = 0;
-                let x = ((opcode & 0x0F00) >> 8) as usize;
-                let y = ((opcode & 0x00F0) >> 4) as usize;
                 let n = (opcode & 0x000F) as usize;
                 for row in 0..n {
                     let mut sprite = self.ram[(self.index + row as u16) as usize];
@@ -419,8 +356,8 @@ impl Cpu {
                         if sprite & 0b1000_0000u8 > 0 {
                             // draw given pixel at
                             if self.display.set_pixel(
-                                (self.registers[x] + col) as usize,
-                                (self.registers[y] + row as u8) as usize,
+                                self.registers[x] as usize + col as usize,
+                                self.registers[y] as usize + row as usize,
                             ) == 1
                             {
                                 self.registers[0xf] = 1
@@ -435,17 +372,13 @@ impl Cpu {
             0xE000 => match opcode & 0x00FF {
                 //Ex9E SKP v /rlater
                 0x9E => {
-                    println!("SKP Ex9E");
-                    let x = (opcode & 0x0F00) >> 8;
-                    if self.keyboard.pressed_key[&(self.registers[x as usize])] {
+                    if self.keyboard.pressed_key[&(self.registers[x])] {
                         self.pc += 2;
                     }
                 }
-                //ExA1 SKNP vx /rlater
+                //ExA1 SKNP vx
                 0xA1 => {
-                    println!("SKNP ExA1");
-                    let x = (opcode & 0x0F00) >> 8;
-                    if !(self.keyboard.pressed_key[&(self.registers[x as usize])]) {
+                    if !(self.keyboard.pressed_key[&(self.registers[x])]) {
                         self.pc += 2;
                     }
                 }
@@ -453,44 +386,29 @@ impl Cpu {
             },
 
             0xF000 => {
-                let x = (opcode & 0x0F00) >> 8;
-                let x = x as usize;
                 match opcode & 0x00FF {
                     //Fx07 LD vx,DT
-                    0x07 => {
-                        println!("LD Fx07");
-                        self.registers[x] = self.delay_timer
-                    }
+                    0x07 => self.registers[x] = self.delay_timer,
                     //Fx0A LD vx,K /rlater
                     0x0A => {
-                        println!("LD Fx0A wait for key");
                         self.paused = true;
                         self.keyboard.should_wait_for_key = true;
                     }
                     //Fx15 LD DT,vx
-                    0x15 => {
-                        println!("LD fx15");
-                        self.delay_timer = self.registers[x]
-                    }
+                    0x15 => self.delay_timer = self.registers[x],
                     //Fx18 LD ST,vx
-                    0x18 => {
-                        println! {"LD fx18"};
-                        self.sound_timer = self.registers[x]
-                    }
+                    0x18 => self.sound_timer = self.registers[x],
                     //Fx1E ADD I,vx
-                    0x1E => {
-                        println!("ADD fx1e");
-                        self.index += self.registers[x] as u16
-                    }
+                    0x1E => self.index += self.registers[x] as u16,
                     //Fx29 LD F,vx
-                    0x29 => {
-                        println!("LD fx29");
-                        // load starting index of font for value(vx)
-                        self.index = self.registers[x] as u16 * 5;
+                    0x29 =>
+                    // load starting index of font for value(vx)
+                    {
+                        self.index = self.registers[x] as u16 * 5
                     }
+
                     //Fx33 LD B,vx
                     0x33 => {
-                        println!("LD Fx33");
                         self.ram[self.index as usize] = (x / 100) as u8;
                         self.ram[(self.index + 1) as usize] = ((x / 10) % 10) as u8;
                         self.ram[(self.index + 2) as usize] = (x % 10) as u8;
@@ -498,7 +416,6 @@ impl Cpu {
 
                     //Fx55 LD [I], Vx
                     0x55 => {
-                        println!("LD fx55");
                         for i in 0..=x {
                             self.ram[(self.index + i as u16) as usize] = self.registers[i];
                         }
@@ -506,29 +423,15 @@ impl Cpu {
 
                     //Fx65 LD vx,[I]
                     0x65 => {
-                        println!("LD Fx65");
                         for i in 0..=x {
                             self.registers[i] = self.ram[(self.index + i as u16) as usize];
                         }
                     }
-                    _ => {}
+                    _ => panic!("Invalid Instruction {}", opcode),
                 }
             }
 
-            _ => {
-                println!("INVALID INSTRUCTION");
-            }
+            _ => panic!("Invalid Instruction {}", opcode),
         }
     }
 }
-
-// impl Cpu {
-//     pub fn dummy_instruction(&mut self) {
-//         let mut rng = rand::thread_rng();
-//         let x = rng.gen_range(0, 64);
-//         let y = rng.gen_range(0, 32);
-//         self.display.set_pixel(x, y);
-//         thread::sleep(Duration::from_millis(17));
-//         print!("Plotting pixel {},{}\r", x, y);
-//     }
-// }

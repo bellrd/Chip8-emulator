@@ -50,5 +50,4 @@ impl Sound {
     pub fn resume(&self) {
         self.device.resume()
     }
-
 }
