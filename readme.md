@@ -1,8 +1,24 @@
-# TODO
+![screenshot.png](chip8.png)
+*Emulator running Space Invader*
 
-- [x] Setup stack and complete stack instructions.
-- [x] Complete **0xF33**, **0xFx55**, **0xFx65** instructions.
-- [ ] Setup *keyboard* and **0xEx9E** and **0xExA1** .
-- [ ] Check if *sound* working.
-- [x] Implement **Dxyn** draw instruction.
-- [x] Implement **0xFx29** load sprite into index instruction.
+## Build 
+
+### Requirements
+* [Rust](https://www.rust-lang.org/tools/install) toolchain with cargo. 
+* [libsdl](https://wiki.libsdl.org/Installation)
+
+### Instructions
+* Clone this repo. `git clone https://github.com/bellrd/chip8-emulator`
+* Cd into directory. `cd chip8-emulator`
+* Run via *e.g.* `cargo run roms/INVADERS`
+
+ 
+## Links
+
+* [Cowgod chip8 technical reference.](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM).
+
+* [FreeCodecamp create your own chip8 emulator in Javascript.](https://www.freecodecamp.org/news/creating-your-very-own-chip-8-emulator/)
+
+* [Comments on chip8 frequency](https://www.reddit.com/r/EmuDev/comments/idmpuf/chip8_clock_frequency_in_c/)
+
+

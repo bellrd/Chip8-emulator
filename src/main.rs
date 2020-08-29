@@ -4,6 +4,7 @@ use std::env;
 use std::fs;
 use std::process;
 
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -21,7 +22,12 @@ fn main() {
         }
     };
 
+    //create new cpu (chip 8)
     let mut cpu: Cpu = Cpu::new();
+
+    //load rom into cpu
     cpu.load(&mut f);
+
+    //start execution
     cpu.execute();
 }

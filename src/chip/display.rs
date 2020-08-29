@@ -52,9 +52,9 @@ impl Display {
             return 1;
         } else {
             // else set pixel
-            self.buffer[position] = 255; //set  A (alpha)
+            self.buffer[position] = 254; //set  A (alpha)
             self.buffer[position + 1] = 100; // set R
-            self.buffer[position + 2] = 255; // set G
+            self.buffer[position + 2] = 254; // set G
             self.buffer[position + 3] = 100; // set B
             return 0;
         }

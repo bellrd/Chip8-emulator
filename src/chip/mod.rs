@@ -84,9 +84,9 @@ impl Cpu {
                             Keycode::Num1 => self.keyboard.on_key_down(1),
                             Keycode::Num2 => self.keyboard.on_key_down(2),
                             Keycode::Num3 => self.keyboard.on_key_down(3),
-                            Keycode::Num4 => self.keyboard.on_key_down(4),
-                            Keycode::Num5 => self.keyboard.on_key_down(5),
-                            Keycode::Num6 => self.keyboard.on_key_down(6),
+                            Keycode::Num4 | Keycode::Left => self.keyboard.on_key_down(4),
+                            Keycode::Num5 | Keycode::Space => self.keyboard.on_key_down(5),
+                            Keycode::Num6 | Keycode::Right => self.keyboard.on_key_down(6),
                             Keycode::Num7 => self.keyboard.on_key_down(7),
                             Keycode::Num8 => self.keyboard.on_key_down(8),
                             Keycode::Num9 => self.keyboard.on_key_down(9),
@@ -110,9 +110,9 @@ impl Cpu {
                         Keycode::Num1 => self.keyboard.on_key_up(1),
                         Keycode::Num2 => self.keyboard.on_key_up(2),
                         Keycode::Num3 => self.keyboard.on_key_up(3),
-                        Keycode::Num4 => self.keyboard.on_key_up(4),
-                        Keycode::Num5 => self.keyboard.on_key_up(5),
-                        Keycode::Num6 => self.keyboard.on_key_up(6),
+                        Keycode::Num4 | Keycode::Left => self.keyboard.on_key_up(4),
+                        Keycode::Num5 | Keycode::Space => self.keyboard.on_key_up(5),
+                        Keycode::Num6 | Keycode::Right => self.keyboard.on_key_up(6),
                         Keycode::Num7 => self.keyboard.on_key_up(7),
                         Keycode::Num8 => self.keyboard.on_key_up(8),
                         Keycode::Num9 => self.keyboard.on_key_up(9),
@@ -123,27 +123,14 @@ impl Cpu {
                     _ => {} // ignore mouse and other event
                 }
             } // events matching end here
-              // execute instruction
-              //self.dummy_instruction();
-            let mut instruction = self.ram[self.pc as usize] as u16;
-            instruction <<= 8;
-            instruction |= self.ram[(self.pc + 1) as usize] as u16;
 
-            // if cpu is paused
-            if self.paused {
-                if self.keyboard.should_wait_for_key == false {
-                    let x = (instruction & 0x0F00) >> 8;
-                    self.registers[x as usize] = self.keyboard.last_pressed_key.unwrap();
-                    self.paused = false;
-                }
-            } else {
-                // if cpu is not paused then execute instruction
-                self.execute_instruction(instruction);
-            }
+            // execute 8 instruction (500hz/60fps) = 8 instruction per frame
+            self.execute_one_batch(8);
 
-            // update display after each instruction
+            // update display after each  batch
             self.display.render();
 
+            // update sound time
             if self.sound_timer == 0 {
                 self.sound.pause();
             } else {
@@ -151,12 +138,16 @@ impl Cpu {
                 self.sound_timer -= 1;
             }
 
+            // update delay time
             if self.delay_timer != 0 {
                 self.delay_timer -= 1;
             }
 
-            //let t1 = (1_000_000 / 60) - t0.elapsed().as_micros();
-            //thread::sleep(Duration::from_micros(t1 as u64));
+            //sleep for remaining microsecond of this iteration 
+            let elapsed_time = t0.elapsed().as_micros();
+
+            // roughly 16666 micros in 1/60 seconds
+            thread::sleep(Duration::from_micros((16666 - elapsed_time) as u64));
         } // main loop ends here
     }
 }
@@ -207,7 +198,7 @@ impl Cpu {
                 //RET
                 0x00EE => self.pc = self.stack.pop().unwrap(),
 
-                _ => println!("Invalid instruction {} ", opcode),
+                _ => panic!("Invalid instruction {} ", opcode),
             },
 
             //1nnn JP addr
@@ -432,6 +423,28 @@ impl Cpu {
             }
 
             _ => panic!("Invalid Instruction {}", opcode),
+        }
+    }
+}
+
+impl Cpu {
+    fn execute_one_batch(&mut self, batch_size:u8) {
+        for _ in 0..batch_size {
+            let mut instruction = self.ram[self.pc as usize] as u16;
+            instruction <<= 8;
+            instruction |= self.ram[(self.pc + 1) as usize] as u16;
+
+            // if cpu is paused
+            if self.paused {
+                if self.keyboard.should_wait_for_key == false {
+                    let x = (instruction & 0x0F00) >> 8;
+                    self.registers[x as usize] = self.keyboard.last_pressed_key.unwrap();
+                    self.paused = false;
+                }
+            } else {
+                // if cpu is not paused then execute instruction
+                self.execute_instruction(instruction);
+            }
         }
     }
 }
