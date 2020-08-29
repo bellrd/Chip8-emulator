@@ -17,8 +17,8 @@
 
 * [Cowgod chip8 technical reference.](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM).
 
-* [FreeCodecamp create your own chip8 emulator in Javascript.](https://www.freecodecamp.org/news/creating-your-very-own-chip-8-emulator/)
+* [FreeCodecamp chip8 emulator in Javascript.](https://www.freecodecamp.org/news/creating-your-very-own-chip-8-emulator/)
 
-* [Comments on chip8 frequency](https://www.reddit.com/r/EmuDev/comments/idmpuf/chip8_clock_frequency_in_c/)
+* [Reddit comments on chip8 frequency](https://www.reddit.com/r/EmuDev/comments/idmpuf/chip8_clock_frequency_in_c/)
 
 
