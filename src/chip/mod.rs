@@ -125,7 +125,7 @@ impl Cpu {
             } // events matching end here
 
             // execute 8 instruction (500hz/60fps) = 8 instruction per frame
-            self.execute_one_batch(8);
+            self.execute_one_batch(16);
 
             // update display after each  batch
             self.display.render();
