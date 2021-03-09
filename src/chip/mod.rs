@@ -143,7 +143,7 @@ impl Cpu {
                 self.delay_timer -= 1;
             }
 
-            //sleep for remaining microsecond of this iteration 
+            //sleep for remaining microsecond of this iteration
             let elapsed_time = t0.elapsed().as_micros();
 
             // roughly 16666 micros in 1/60 seconds
@@ -271,7 +271,7 @@ impl Cpu {
                             // set Vf flag
                             self.registers[0xF] = 1;
                         } else {
-                            self.registers[x] = self.registers[y] - self.registers[x];
+                            self.registers[x] = self.registers[x] - self.registers[y];
                             // clear Vf flag
                             self.registers[0xF] = 0;
                         }
@@ -295,7 +295,7 @@ impl Cpu {
                             // set Vf flag
                             self.registers[0xF] = 1;
                         } else {
-                            self.registers[x] = self.registers[x] - self.registers[y];
+                            self.registers[x] = self.registers[y] - self.registers[x];
                             // clear Vf flag
                             self.registers[0xF] = 0;
                         }
@@ -428,7 +428,7 @@ impl Cpu {
 }
 
 impl Cpu {
-    fn execute_one_batch(&mut self, batch_size:u8) {
+    fn execute_one_batch(&mut self, batch_size: u8) {
         for _ in 0..batch_size {
             let mut instruction = self.ram[self.pc as usize] as u16;
             instruction <<= 8;
